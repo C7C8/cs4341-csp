@@ -69,8 +69,8 @@ with open(args.input, "r") as input:
 
 			def fit_limit_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
 				return all(map(lambda bag: min_v <= len(bag) <= max_v, curr.items()))
+			fit_limit_constraint.vars = list(variables.keys())
 			constraints.append(fit_limit_constraint)
-			constraint_vars.append(list(variables.keys()))
 
 		# Unary inclusive constraints
 		elif section == 3:
@@ -85,8 +85,8 @@ with open(args.input, "r") as input:
 
 				# The item must be in the given bag and there can only be one instance of it
 				return any(contains_item[k] for k in vals[1:]) and sum(contains_item) == 1
+			unary_inclusive_constraint.vars = [key]
 			constraints.append(unary_inclusive_constraint)
-			constraint_vars.append([key])
 
 		# Unary exclusive constraints
 		elif section == 4:
@@ -94,8 +94,8 @@ with open(args.input, "r") as input:
 
 			def unary_exclusive_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
 				return not any(key in curr[k] for k in vals[1:])
+			unary_exclusive_constraint.vars = [key]
 			constraints.append(unary_exclusive_constraint)
-			constraint_vars.append([key])
 
 		# Binary equals constraints
 		elif section == 5:
@@ -109,8 +109,8 @@ with open(args.input, "r") as input:
 
 				# Filter down to a list of bags that have one item or the other; it should be 1 for this to be satisfied
 				return len(list(filter(lambda bag: item in bag or key in bag, curr.values()))) == 1
+			binary_equals_constraint.vars = [item, key]
 			constraints.append(binary_equals_constraint)
-			constraint_vars.append([item, key])
 
 		# Binary inequality constraint
 		elif section == 6:
@@ -124,8 +124,8 @@ with open(args.input, "r") as input:
 
 				# Filter down to a list of bags that have one item or the other; it should be 2 for this to be satisfied
 				return len(list(filter(lambda bag: item in bag or key in bag, curr.values()))) == 2
+			binary_not_equals_constraint.vars = [item, key]
 			constraints.append(binary_not_equals_constraint)
-			constraint_vars.append([item, key])
 
 		# Binary simultaneous constraint
 		elif section == 7:
@@ -143,12 +143,13 @@ with open(args.input, "r") as input:
 				second_bag = vals[2] if first_bag == vals[3] else vals[3]
 				# Make sure the other bag contains the second item
 				return vals[1] in curr[second_bag]
+			binary_simultaneous_constraint.vars = vals[:2]
 			constraints.append(binary_simultaneous_constraint)
-			constraint_vars.append(vals[:2])
+
+single_bag_constraint.vars = list(variables.keys())
 constraints.append(single_bag_constraint)
-constraint_vars.append(list(variables.keys()))
+capacity_constraint.vars = list(variables.keys())
 constraints.append(capacity_constraint)
-constraint_vars.append(list(variables.keys()))
 vprint("Registered single bag constraint: items may only appear in one bag")
 vprint("Registered capacity constraint: no bag may be over capacity")
 
