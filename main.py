@@ -3,6 +3,11 @@ import argparse
 import sys
 from typing import List, Callable, Dict
 
+
+# WARNING! This file contains massive amounts of python one-liner bullshit,
+# which is... actually extraordinarily useful. Proceed at your own risk!
+
+
 parser = argparse.ArgumentParser(description="CSP solver for CS 4341")
 parser.add_argument("input", type=str, help="")
 parser.add_argument("-o", "--output", type=str, help="Optional output file; if none is given, output will be "
@@ -18,6 +23,25 @@ out = sys.stdout if args.output is None else open(args.output, "w")
 variables = {} 																# Variable name -> value
 bags = {}																	# Bag name -> Capacity
 constraints: List[Callable[[Dict, Dict, Dict[str, List[str]]], bool]] = [] 	# Constraint functions
+
+
+# Base constraint: An item cannot be in more than one bag
+def single_bag_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
+	all_items = {i for bag in curr.values() for i in bag}
+	return len(set(all_items)) == len(all_items)
+
+
+# Base constraint: No bag can be over-capacity
+def capacity_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
+	totals = {k: sum(map(lambda i: vars_f[i], items)) for k, items in curr.items()}
+	return not any(s > bags_f[k] for k, s in totals.items())
+
+
+# Constraint list building
+constraints.append(single_bag_constraint)
+constraints.append(capacity_constraint)
+vprint("Registered single bag constraint: items may only appear in one bag")
+vprint("Registered capacity constraint: no bag may be over capacity")
 with open(args.input, "r") as input:
 	section = -1
 	for line in input:
@@ -120,4 +144,6 @@ with open(args.input, "r") as input:
 			constraints.append(binary_simultaneous_constraint)
 
 
-vprint("Loaded file!")
+vprint("\nLoaded file {} with {} variables, {} bags, and {} constraints".format(args.input, len(variables), len(bags),
+																			  len(constraints)))
+vprint("Beginning constraint solving search")
