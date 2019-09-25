@@ -20,9 +20,10 @@ vprint = print if args.verbose else lambda *x, **y: None
 out = sys.stdout if args.output is None else open(args.output, "w")
 
 
-variables = {} 																# Variable name -> value
-bags = {}																	# Bag name -> Capacity
-constraints: List[Callable[[Dict, Dict, Dict[str, List[str]]], bool]] = [] 	# Constraint functions
+variables = {} 			# Variable name -> value
+bags = {}				# Bag name -> Capacity
+constraints = [] 		# Constraint functions
+constraint_vars = []    # Variables affected by constraint
 
 
 # Base constraint: An item cannot be in more than one bag
@@ -38,10 +39,6 @@ def capacity_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
 
 
 # Constraint list building
-constraints.append(single_bag_constraint)
-constraints.append(capacity_constraint)
-vprint("Registered single bag constraint: items may only appear in one bag")
-vprint("Registered capacity constraint: no bag may be over capacity")
 with open(args.input, "r") as input:
 	section = -1
 	for line in input:
@@ -73,13 +70,14 @@ with open(args.input, "r") as input:
 			def fit_limit_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
 				return all(map(lambda bag: min_v <= len(bag) <= max_v, curr.items()))
 			constraints.append(fit_limit_constraint)
+			constraint_vars.append(list(variables.keys()))
 
 		# Unary inclusive constraints
 		elif section == 3:
-			vprint("Registered unary inclusive constraint; item {} can only be held by bag {}".format(item, vals[1:]))
+			vprint("Registered unary inclusive constraint; item {} can only be held by bag {}".format(key, vals[1:]))
 
 			def unary_inclusive_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
-				contains_item = {bag_name: contents.contains(item) for bag_name, contents in curr}
+				contains_item = {bag_name: contents.contains(key) for bag_name, contents in curr}
 
 				# No bag contains the item in question, so the constraint is satisfied by default
 				if not any(contains_item.values()):
@@ -88,14 +86,16 @@ with open(args.input, "r") as input:
 				# The item must be in the given bag and there can only be one instance of it
 				return any(contains_item[k] for k in vals[1:]) and sum(contains_item) == 1
 			constraints.append(unary_inclusive_constraint)
+			constraint_vars.append([key])
 
 		# Unary exclusive constraints
 		elif section == 4:
-			vprint("Registered unary exclusive constraint; item {} cannot be held by bag {}".format(item, vals[1:]))
+			vprint("Registered unary exclusive constraint; item {} cannot be held by bag {}".format(key, vals[1:]))
 
 			def unary_exclusive_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
-				return not any(item in curr[k] for k in vals[1:])
+				return not any(key in curr[k] for k in vals[1:])
 			constraints.append(unary_exclusive_constraint)
+			constraint_vars.append([key])
 
 		# Binary equals constraints
 		elif section == 5:
@@ -110,10 +110,11 @@ with open(args.input, "r") as input:
 				# Filter down to a list of bags that have one item or the other; it should be 1 for this to be satisfied
 				return len(list(filter(lambda bag: item in bag or key in bag, curr.values()))) == 1
 			constraints.append(binary_equals_constraint)
+			constraint_vars.append([item, key])
 
 		# Binary inequality constraint
 		elif section == 6:
-			vprint("Registered binary inequality constraint; items {} and {} must not be in the same bag")
+			vprint("Registered binary inequality constraint; items {} and {} must not be in the same bag".format(item, key))
 
 			def binary_not_equals_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
 				# If both items aren't in the set of all items taken this constraint is always satisfied
@@ -124,10 +125,11 @@ with open(args.input, "r") as input:
 				# Filter down to a list of bags that have one item or the other; it should be 2 for this to be satisfied
 				return len(list(filter(lambda bag: item in bag or key in bag, curr.values()))) == 2
 			constraints.append(binary_not_equals_constraint)
+			constraint_vars.append([item, key])
 
 		# Binary simultaneous constraint
 		elif section == 7:
-			vprint("Registered binary simultaneous constraint; if present, items {} must be stored in {}, respectively"
+			vprint("Registered binary simultaneous constraint; if present, items {} must be stored in {}, evenly"
 				   .format(vals[:2], vals[2:]))
 
 			def binary_simultaneous_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
@@ -142,7 +144,13 @@ with open(args.input, "r") as input:
 				# Make sure the other bag contains the second item
 				return vals[1] in curr[second_bag]
 			constraints.append(binary_simultaneous_constraint)
-
+			constraint_vars.append(vals[:2])
+constraints.append(single_bag_constraint)
+constraint_vars.append(list(variables.keys()))
+constraints.append(capacity_constraint)
+constraint_vars.append(list(variables.keys()))
+vprint("Registered single bag constraint: items may only appear in one bag")
+vprint("Registered capacity constraint: no bag may be over capacity")
 
 vprint("\nLoaded file {} with {} variables, {} bags, and {} constraints".format(args.input, len(variables), len(bags),
 																			  len(constraints)))
