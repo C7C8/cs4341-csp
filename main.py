@@ -93,13 +93,16 @@ vprint("Beginning constraint solving search")
 
 
 def csp(universe, next_moves=None):
+	vprint("Processing universe {} ".format(universe))
 	possible_moves = get_valid_moves(variables, bags, universe, constraints) if next_moves is None else next_moves
 
 	if len(possible_moves) == 0:
 		# Either we've found the solution or we have to backtrack some. Check final constraints, if they all pass
 		# then just return this universe, otherwise return None to signal for backtracking
 		if all_assigned_constraint(variables, bags, universe) and fill_constraint(variables, bags, universe):
+			vprint("Found a solution!")
 			return universe
+		vprint("Dead end reached, backtracking!\n")
 		return None
 
 	# Minimum remaining heuristic: choose variables to expand in order of the ones that have the fewest possible

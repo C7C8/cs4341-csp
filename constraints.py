@@ -1,3 +1,4 @@
+from math import floor
 from typing import Dict
 
 
@@ -22,7 +23,7 @@ def all_assigned_constraint(vars_f: Dict, bags_f: Dict, universe: Dict) -> bool:
 # Final constraint: All bags must be at least 90% filled (rounding down)
 def fill_constraint(vars_f: Dict, bags_f: Dict, universe: Dict) -> bool:
 	totals = {k: sum(map(lambda i: vars_f[i], items)) for k, items in universe.items()}
-	return not any(s / bags_f[k] < 0.9 for k, s in totals.items())
+	return not any(s < floor(0.9 * bags_f[k]) for k, s in totals.items())
 
 
 def create_fit_limit_constraint(max_v, min_v, variables):
