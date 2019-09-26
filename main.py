@@ -110,7 +110,7 @@ def csp(universe):
 
 	# Least constraining value: sort variables by the number of possible universes that could come after them while
 	# maintaining variable sorting from the MRV heuristic.
-	possible_moves_sorted = {key: [] for key in values_count.keys()}
+	possible_universes_grouped = {key: [] for key in values_count.keys()}
 	for move in possible_moves:
 		# Enact move in alternate universe, add it to the list
 		alternate_universe = deepcopy(universe)
@@ -118,17 +118,20 @@ def csp(universe):
 			alternate_universe[move[1]] = []
 		alternate_universe[move[1]].append(move[0])
 
-		possible_moves_sorted[move[0]].append((alternate_universe, get_valid_moves(variables, bags, alternate_universe, constraints)))
-	possible_moves.clear()
+		possible_universes_grouped[move[0]].append((alternate_universe, get_valid_moves(variables, bags, alternate_universe, constraints)))
+	del possible_moves  # Reduce memory usage a bit
+
+	possible_universes = []
 	for variable in values_sorted:
-		possible_moves.extend(sorted(possible_moves_sorted[variable], key=lambda move: len(move[1]), reverse=True))
+		possible_universes.extend(sorted(possible_universes_grouped[variable], key=lambda move: len(move[1]), reverse=True))
+	del possible_universes_grouped  # Reduce memory usage a bit
 
 	# Now go through the possible moves!
-	for move in possible_moves:
-		ret = csp(move[0])
+	for universe in possible_universes:
+		ret = csp(universe[0])
 		if ret is not None:
 			return ret
 
-test = csp({})
 
-print("Yes!")
+result = csp({})
+print("Result: {}".format(result))
