@@ -92,8 +92,8 @@ vprint("\nLoaded file {} with {} variables, {} bags, and {} constraints".format(
 vprint("Beginning constraint solving search")
 
 
-def csp(universe):
-	possible_moves = get_valid_moves(variables, bags, universe, constraints)
+def csp(universe, next_moves=None):
+	possible_moves = get_valid_moves(variables, bags, universe, constraints) if next_moves is None else next_moves
 
 	if len(possible_moves) == 0:
 		# Either we've found the solution or we have to backtrack some. Check final constraints, if they all pass
@@ -127,8 +127,8 @@ def csp(universe):
 	del possible_universes_grouped  # Reduce memory usage a bit
 
 	# Now go through the possible moves!
-	for universe in possible_universes:
-		ret = csp(universe[0])
+	for next_universe in possible_universes:
+		ret = csp(next_universe[0], next_universe[1])
 		if ret is not None:
 			return ret
 
