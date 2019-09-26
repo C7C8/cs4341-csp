@@ -97,8 +97,8 @@ iterations = 0
 def csp(universe, next_moves=None, depth=0):
 	global iterations
 	iterations += 1
-	vprint("".join(["\t" for n in range(depth)]) + "Processing universe {} ".format(universe))
 	possible_moves = get_valid_moves(variables, bags, universe, constraints) if next_moves is None else next_moves
+	vprint("".join(["\t" for n in range(depth)]) + "Processing universe {}: {} possible changes ".format(universe, len(possible_moves)))
 
 	if len(possible_moves) == 0:
 		# Either we've found the solution or we have to backtrack some. Check final constraints, if they all pass
@@ -166,11 +166,12 @@ total_time = (time.time() * 1000) - ctime
 if result is None:
 	vprint("Failed to find a solution, took {} iterations and {:.1f}ms".format(iterations, total_time))
 	print("no solution", file=out)
-	out.close()
+	if args.output is not None:
+		out.close()
 
 
 # Print report
-print("Found a solution in {} iterations ({:.1f} ms)!".format(iterations, total_time))
+vprint("Found a solution in {} iterations ({:.1f} ms)!".format(iterations, total_time))
 vprint("{}\n".format(result))
 for bag, items in result.items():
 	print("{} {}".format(bag, " ".join(items)), file=out)

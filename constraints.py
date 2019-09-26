@@ -36,7 +36,7 @@ def create_fit_limit_constraint(max_v, min_v, variables):
 		if len(all_items) != len(vars_f):
 			return all(map(lambda bag: len(bag) <= max_v, universe.items()))
 
-		return all(map(lambda bag: min_v <= len(bag) <= max_v, universe.items()))
+		return all(map(lambda bag: min_v <= len(bag[1]) <= max_v, universe.items()))
 
 	fit_limit_constraint.vars = list(variables.keys())
 	return fit_limit_constraint
