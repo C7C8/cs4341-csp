@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import argparse
+from copy import deepcopy
 import sys
-from typing import Dict
+from collections import Counter
 
-
-# WARNING! This file contains massive amounts of python one-liner bullshit,
-# which is... actually extraordinarily useful. Proceed at your own risk!
 from constraints import *
 from csp_utils import get_valid_moves
+
+# WARNING! This project contains massive amounts of python one-liner bullshit,
+# which is... actually extraordinarily useful. Proceed at your own risk!
 
 parser = argparse.ArgumentParser(description="CSP solver for CS 4341")
 parser.add_argument("input", type=str, help="")
@@ -22,20 +23,6 @@ out = sys.stdout if args.output is None else open(args.output, "w")
 variables = {} 			# Variable name -> value
 bags = {}				# Bag name -> Capacity
 constraints = [] 		# Constraint functions
-constraint_vars = []    # Variables affected by constraint
-
-
-# Base constraint: An item cannot be in more than one bag
-def single_bag_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
-	all_items = {i for bag in curr.values() for i in bag}
-	return len(set(all_items)) == len(all_items)
-
-
-# Base constraint: No bag can be over-capacity
-def capacity_constraint(vars_f: Dict, bags_f: Dict, curr: Dict) -> bool:
-	totals = {k: sum(map(lambda i: vars_f[i], items)) for k, items in curr.items()}
-	return not any(s > bags_f[k] for k, s in totals.items())
-
 
 # Constraint list building
 with open(args.input, "r") as input:
@@ -94,9 +81,9 @@ with open(args.input, "r") as input:
 			constraints.append(create_binary_simultaneous_constraint(vals))
 
 single_bag_constraint.vars = list(variables.keys())
-constraints.append(single_bag_constraint)
+constraints.insert(0, single_bag_constraint)
 capacity_constraint.vars = list(variables.keys())
-constraints.append(capacity_constraint)
+constraints.insert(1, capacity_constraint)
 vprint("Registered single bag constraint: items may only appear in one bag")
 vprint("Registered capacity constraint: no bag may be over capacity")
 
@@ -104,5 +91,44 @@ vprint("\nLoaded file {} with {} variables, {} bags, and {} constraints".format(
 																			  len(constraints)))
 vprint("Beginning constraint solving search")
 
-moves = get_valid_moves(variables, bags, {}, constraints)
+
+def csp(universe):
+	possible_moves = get_valid_moves(variables, bags, universe, constraints)
+
+	if len(possible_moves) == 0:
+		# Either we've found the solution or we have to backtrack some. Check final constraints, if they all pass
+		# then just return this universe, otherwise return None to signal for backtracking
+		if all_assigned_constraint(variables, bags, universe) and fill_constraint(variables, bags, universe):
+			return universe
+		return None
+
+	# Minimum remaining heuristic: choose variables to expand in order of the ones that have the fewest possible
+	# remaining values. This just decides on the order of variables, using some magic Python one liner bullshit.
+	# The final list is assembled below.
+	values_count = Counter(value[0] for value in possible_moves)
+	values_sorted = list(sorted(values_count.keys(), key=lambda value: values_count[value]))
+
+	# Least constraining value: sort variables by the number of possible universes that could come after them while
+	# maintaining variable sorting from the MRV heuristic.
+	possible_moves_sorted = {key: [] for key in values_count.keys()}
+	for move in possible_moves:
+		# Enact move in alternate universe, add it to the list
+		alternate_universe = deepcopy(universe)
+		if move[1] not in alternate_universe.keys():
+			alternate_universe[move[1]] = []
+		alternate_universe[move[1]].append(move[0])
+
+		possible_moves_sorted[move[0]].append((alternate_universe, get_valid_moves(variables, bags, alternate_universe, constraints)))
+	possible_moves.clear()
+	for variable in values_sorted:
+		possible_moves.extend(sorted(possible_moves_sorted[variable], key=lambda move: len(move[1]), reverse=True))
+
+	# Now go through the possible moves!
+	for move in possible_moves:
+		ret = csp(move[0])
+		if ret is not None:
+			return ret
+
+test = csp({})
+
 print("Yes!")
