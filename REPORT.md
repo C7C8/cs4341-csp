@@ -9,6 +9,16 @@ to determine if a problem is unsolvable, but that's only to be expected consider
 It does appear to struggle with the "hard" examples given (at the time of this writing I'm running it on hard4 and it
 hasn't found a solution in about 20 minutes).
 
+To analyze the difference between forward checking only and all heuristics (it's technically impossible to disable
+all forward checking in this implementation), I wrote a script that tested on inputs 1-23 (25 is impossible, 26 and
+24 take forever to run without heuristics) 5 times with heuristics enabled, 5 times without, then output the results
+to files (data.csv and data2.csv).
+
+I ran a paired, 2-tailed t-test on the data and obtained p=0.36 for the first and p=0.34 for the second, suggesting that
+the differences here are *not* statistically significant. However, this is also with the two hardest cases removed, and
+"dumb" mode with no heuristics is much, much more vulnerable to taking thousands of milliseconds to compute, whereas
+with heuristics everything is calculated in under a second. All things considered, I still believe that running with
+heuristics is more optimal than running without.
 
 ## Design Overview
 ### Data structures

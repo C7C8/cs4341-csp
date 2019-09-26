@@ -19,15 +19,17 @@ for file in os.listdir(args.data_dir):
 	dumb_times = []
 
 	# Regular trials first
-	print("Testing on {}".format(file))
+	print("\n\nTesting on {}".format(file))
 	for trial in range(args.trials):
+		print("Trial {}...".format(trial + 1))
 		ctime = time.time() * 1000
 		subprocess.run([args.script, "-o", "/dev/null", args.data_dir + "/" + file])
 		times.append((time.time() * 1000) - ctime)
 
 	# Dumb trials
-	print("Dumb testing on {}".format(file))
+	print("\nDumb testing on {}".format(file))
 	for trial in range(args.trials):
+		print("Trial {}...".format(trial + 1))
 		ctime = time.time() * 1000
 		subprocess.run([args.script, "-do", "/dev/null", args.data_dir + "/" + file])
 		dumb_times.append((time.time() * 1000) - ctime)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import random
 import sys
 import time
 from collections import Counter
@@ -106,51 +107,63 @@ def csp(universe, next_moves=None, depth=0):
 			return universe
 		return None
 
-	# Minimum remaining heuristic: choose variables to expand in order of the ones that have the fewest possible
-	# remaining values. This just decides on the order of variables, using some magic Python one liner bullshit.
-	# The final list is assembled below.
-	values_count = Counter(value[0] for value in possible_moves)
-	values_sorted = list(sorted(values_count.keys(), key=lambda value: values_count[value]))
+	if args.dumb:
+		possible_universes = []
+		for move in possible_moves:
+			alternate_universe = deepcopy(universe)
+			if move[1] not in alternate_universe.keys():
+				alternate_universe[move[1]] = []
+			alternate_universe[move[1]].append(move[0])
 
-	# Most constrained / degree heuristic: group by number of occurrences so we can sort those groups
-	# by variables that are involved in the most constraints
-	values_count_grouped = {}
-	for variable, count in values_count.items():
-		if count not in values_count_grouped:
-			values_count_grouped[count] = []
-		values_count_grouped[count].append(variable)
-	values_sorted.clear()
+			possible_universes.append((alternate_universe, get_valid_moves(variables, bags, alternate_universe, constraints)))
 
-	# Sort each list by the number of constraints that appear on each variable...
-	for count, vbls in values_count_grouped.items():
-		values_count_grouped[count] = sorted(vbls,
-									 key=lambda var: sum([var in constraint.vars for constraint in constraints]), reverse=True)
+		random.shuffle(possible_universes)
+	else:
+		# Minimum remaining heuristic: choose variables to expand in order of the ones that have the fewest possible
+		# remaining values. This just decides on the order of variables, using some magic Python one liner bullshit.
+		# The final list is assembled below.
+		values_count = Counter(value[0] for value in possible_moves)
+		values_sorted = list(sorted(values_count.keys(), key=lambda value: values_count[value]))
 
-	# ...and finally group them all back together again into values_sorted. This list now represents a combination of
-	# the minimum remaining values heuristic with most constrained / degree heuristic as a tiebreaker.
-	for count in sorted(values_count_grouped.keys()):
-		values_sorted.extend(values_count_grouped[count])
-	del values_count_grouped
+		# Most constrained / degree heuristic: group by number of occurrences so we can sort those groups
+		# by variables that are involved in the most constraints
+		values_count_grouped = {}
+		for variable, count in values_count.items():
+			if count not in values_count_grouped:
+				values_count_grouped[count] = []
+			values_count_grouped[count].append(variable)
+		values_sorted.clear()
 
-	# Least constraining value: sort variables by the number of possible universes that could come after them while
-	# maintaining variable sorting from the MRV heuristic.
-	possible_universes_grouped = {key: [] for key in values_count.keys()}
-	for move in possible_moves:
-		# Enact move in alternate universe, add it to the list
-		alternate_universe = deepcopy(universe)
-		if move[1] not in alternate_universe.keys():
-			alternate_universe[move[1]] = []
-		alternate_universe[move[1]].append(move[0])
+		# Sort each list by the number of constraints that appear on each variable...
+		for count, vbls in values_count_grouped.items():
+			values_count_grouped[count] = sorted(vbls,
+										 key=lambda var: sum([var in constraint.vars for constraint in constraints]), reverse=True)
 
-		possible_universes_grouped[move[0]].append((alternate_universe, get_valid_moves(variables, bags, alternate_universe, constraints)))
-	del possible_moves  # Reduce memory usage a bit
+		# ...and finally group them all back together again into values_sorted. This list now represents a combination of
+		# the minimum remaining values heuristic with most constrained / degree heuristic as a tiebreaker.
+		for count in sorted(values_count_grouped.keys()):
+			values_sorted.extend(values_count_grouped[count])
+		del values_count_grouped
 
-	possible_universes = []
-	for variable in values_sorted:
-		# This "sorted" bit is the core of the least-constraining values engine; it prioritizes values for variables
-		# where the number of future possibilities is greatest (i.e. the value is least constraining).
-		possible_universes.extend(sorted(possible_universes_grouped[variable], key=lambda move: len(move[1]), reverse=True))
-	del possible_universes_grouped  # Reduce memory usage a bit
+		# Least constraining value: sort variables by the number of possible universes that could come after them while
+		# maintaining variable sorting from the MRV heuristic.
+		possible_universes_grouped = {key: [] for key in values_count.keys()}
+		for move in possible_moves:
+			# Enact move in alternate universe, add it to the list
+			alternate_universe = deepcopy(universe)
+			if move[1] not in alternate_universe.keys():
+				alternate_universe[move[1]] = []
+			alternate_universe[move[1]].append(move[0])
+
+			possible_universes_grouped[move[0]].append((alternate_universe, get_valid_moves(variables, bags, alternate_universe, constraints)))
+		del possible_moves  # Reduce memory usage a bit
+
+		possible_universes = []
+		for variable in values_sorted:
+			# This "sorted" bit is the core of the least-constraining values engine; it prioritizes values for variables
+			# where the number of future possibilities is greatest (i.e. the value is least constraining).
+			possible_universes.extend(sorted(possible_universes_grouped[variable], key=lambda move: len(move[1]), reverse=True))
+		del possible_universes_grouped  # Reduce memory usage a bit
 
 	# Now go through the possible moves!
 	for next_universe in possible_universes:
