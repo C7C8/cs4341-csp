@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import argparse
-from copy import deepcopy
 import sys
+import time
 from collections import Counter
+from copy import deepcopy
 
 from constraints import *
 from csp_utils import get_valid_moves
@@ -155,15 +156,17 @@ def csp(universe, next_moves=None, depth=0):
 			return ret
 
 
+ctime = time.time() * 1000
 result = csp({})
+total_time = (time.time() * 1000) - ctime
 if result is None:
-	vprint("Failed to find a solution, took {} iterations".format(iterations))
+	vprint("Failed to find a solution, took {} iterations and {:.1f}ms".format(iterations, total_time))
 	print("no solution", file=out)
 	out.close()
 
 
 # Print report
-vprint("Found a solution in {} iterations!".format(iterations))
+print("Found a solution in {} iterations ({:.1f} ms)!".format(iterations, total_time))
 vprint("{}\n".format(result))
 for bag, items in result.items():
 	print("{} {}".format(bag, " ".join(items)), file=out)
