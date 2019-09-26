@@ -112,6 +112,24 @@ def csp(universe, next_moves=None, depth=0):
 	values_count = Counter(value[0] for value in possible_moves)
 	values_sorted = list(sorted(values_count.keys(), key=lambda value: values_count[value]))
 
+	# Now group by number of occurrences so we can sort those individually (most constraining variable)
+	values_count_grouped = {}
+	for variable, count in values_count.items():
+		if count not in values_count_grouped:
+			values_count_grouped[count] = []
+		values_count_grouped[count].append(variable)
+	values_sorted.clear()
+
+	# Sort each list by the number of constraints that appear on each variable...
+	for count, vbls in values_count_grouped.items():
+		values_count_grouped[count] = sorted(vbls,
+									 key=lambda var: sum([var in constraint.vars for constraint in constraints]), reverse=True)
+
+	# ...and finally group them all back together again into values_sorted
+	for count in sorted(values_count_grouped.keys()):
+		values_sorted.extend(values_count_grouped[count])
+	del values_count_grouped
+
 	# Least constraining value: sort variables by the number of possible universes that could come after them while
 	# maintaining variable sorting from the MRV heuristic.
 	possible_universes_grouped = {key: [] for key in values_count.keys()}
