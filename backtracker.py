@@ -15,7 +15,8 @@ parser = argparse.ArgumentParser(description="CSP solver for CS 4341")
 parser.add_argument("input", type=str, help="")
 parser.add_argument("-o", "--output", type=str, help="Optional output file; if none is given, output will be "
 															 "written to stdout")
-parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output (file parsing, solver progress logging)")
+parser.add_argument("--dumb", "-d", action="store_true", help="Disable all heuristics and use random shuffling")
 args = parser.parse_args()
 
 # Setup
@@ -81,10 +82,8 @@ with open(args.input, "r") as input:
 				   .format(vals[:2], vals[2:]))
 			constraints.append(create_binary_simultaneous_constraint(vals))
 
-single_bag_constraint.vars = list(variables.keys())
-constraints.insert(0, single_bag_constraint)
 capacity_constraint.vars = list(variables.keys())
-constraints.insert(1, capacity_constraint)
+constraints.insert(0, capacity_constraint)
 vprint("Registered single bag constraint: items may only appear in one bag")
 vprint("Registered capacity constraint: no bag may be over capacity")
 
@@ -177,8 +176,8 @@ for bag, items in result.items():
 	print("{} {}".format(bag, " ".join(items)), file=out)
 	print("number of items: {}".format(len(items)), file=out)
 	weight = sum(variables[item] for item in items)
-	print("total weight: {}/{}".format(weight, bags[bag]))
-	print("wasted capacity: {}\n".format(bags[bag] - weight))
+	print("total weight: {}/{}".format(weight, bags[bag]), file=out)
+	print("wasted capacity: {}\n".format(bags[bag] - weight), file=out)
 
 if args.output is not None:
 	out.close()
