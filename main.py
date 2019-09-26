@@ -138,5 +138,21 @@ def csp(universe, next_moves=None, depth=0):
 
 
 result = csp({})
+if result is None:
+	vprint("Failed to find a solution, took {} iterations".format(iterations))
+	print("no solution", file=out)
+	out.close()
+
+
+# Print report
 vprint("Found a solution in {} iterations!".format(iterations))
-print("Result: {}".format(result))
+vprint("{}\n".format(result))
+for bag, items in result.items():
+	print("{} {}".format(bag, " ".join(items)), file=out)
+	print("number of items: {}".format(len(items)), file=out)
+	weight = sum(variables[item] for item in items)
+	print("total weight: {}/{}".format(weight, bags[bag]))
+	print("wasted capacity: {}\n".format(bags[bag] - weight))
+
+if args.output is not None:
+	out.close()
