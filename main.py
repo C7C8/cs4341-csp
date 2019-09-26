@@ -87,22 +87,23 @@ constraints.insert(1, capacity_constraint)
 vprint("Registered single bag constraint: items may only appear in one bag")
 vprint("Registered capacity constraint: no bag may be over capacity")
 
-vprint("\nLoaded file {} with {} variables, {} bags, and {} constraints".format(args.input, len(variables), len(bags),
+vprint("Loaded file {} with {} variables, {} bags, and {} constraints\n".format(args.input, len(variables), len(bags),
 																			  len(constraints)))
 vprint("Beginning constraint solving search")
+iterations = 0
 
 
-def csp(universe, next_moves=None):
-	vprint("Processing universe {} ".format(universe))
+def csp(universe, next_moves=None, depth=0):
+	global iterations
+	iterations += 1
+	vprint("".join(["\t" for n in range(depth)]) + "Processing universe {} ".format(universe))
 	possible_moves = get_valid_moves(variables, bags, universe, constraints) if next_moves is None else next_moves
 
 	if len(possible_moves) == 0:
 		# Either we've found the solution or we have to backtrack some. Check final constraints, if they all pass
 		# then just return this universe, otherwise return None to signal for backtracking
 		if all_assigned_constraint(variables, bags, universe) and fill_constraint(variables, bags, universe):
-			vprint("Found a solution!")
 			return universe
-		vprint("Dead end reached, backtracking!\n")
 		return None
 
 	# Minimum remaining heuristic: choose variables to expand in order of the ones that have the fewest possible
@@ -131,10 +132,11 @@ def csp(universe, next_moves=None):
 
 	# Now go through the possible moves!
 	for next_universe in possible_universes:
-		ret = csp(next_universe[0], next_universe[1])
+		ret = csp(next_universe[0], next_universe[1], depth + 1)
 		if ret is not None:
 			return ret
 
 
 result = csp({})
+vprint("Found a solution in {} iterations!".format(iterations))
 print("Result: {}".format(result))

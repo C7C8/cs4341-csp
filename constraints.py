@@ -23,7 +23,10 @@ def all_assigned_constraint(vars_f: Dict, bags_f: Dict, universe: Dict) -> bool:
 # Final constraint: All bags must be at least 90% filled (rounding down)
 def fill_constraint(vars_f: Dict, bags_f: Dict, universe: Dict) -> bool:
 	totals = {k: sum(map(lambda i: vars_f[i], items)) for k, items in universe.items()}
-	return not any(s < floor(0.9 * bags_f[k]) for k, s in totals.items())
+	result = not any(s < floor(0.9 * bags_f[k]) for k, s in totals.items())
+	if not result:
+		print("Fill constraint fail")
+	return result
 
 
 def create_fit_limit_constraint(max_v, min_v, variables):
@@ -96,16 +99,19 @@ def create_binary_not_equals_constraint(vals):
 
 def create_binary_simultaneous_constraint(vals):
 	def binary_simultaneous_constraint(vars_f: Dict, bags_f: Dict, universe: Dict) -> bool:
-		# If both items aren't present, continue
+		# If both items aren't present, call it satisfied for the purposes of solving
 		all_items = {i for bag in universe.values() for i in bag}
 		if len(all_items.intersection(set(vals[:2]))) < 2:
 			return True
 
-		# Get the bag that the first item belongs to
-		first_bag = list(filter(lambda bag: vals[0] in bag.values(), universe))[0]
-		second_bag = vals[2] if first_bag == vals[3] else vals[3]
-		# Make sure the other bag contains the second item
-		return vals[1] in universe[second_bag]
+		# If the universe doesn't yet have the requisite bags, call it satisfied for the purposes of solving
+		if vals[2] not in universe.keys() or vals[3] not in universe.keys():
+			return True
+
+		# Get a list of the bags that these items fall into; either they both fall into the bags they're supposed to,
+		# or neither of them fall into the bags.
+		assignments = set([x[0] for x in list(filter(lambda item: vals[0] in item[1] or vals[1] in item[1], universe.items()))])
+		return len(assignments.intersection(set(vals[2:]))) != 1
 
 	binary_simultaneous_constraint.vars = vals[:2]
 	return binary_simultaneous_constraint
