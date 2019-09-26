@@ -113,7 +113,8 @@ def csp(universe, next_moves=None, depth=0):
 	values_count = Counter(value[0] for value in possible_moves)
 	values_sorted = list(sorted(values_count.keys(), key=lambda value: values_count[value]))
 
-	# Now group by number of occurrences so we can sort those individually (most constraining variable)
+	# Most constrained / degree heuristic: group by number of occurrences so we can sort those groups
+	# by variables that are involved in the most constraints
 	values_count_grouped = {}
 	for variable, count in values_count.items():
 		if count not in values_count_grouped:
@@ -126,7 +127,8 @@ def csp(universe, next_moves=None, depth=0):
 		values_count_grouped[count] = sorted(vbls,
 									 key=lambda var: sum([var in constraint.vars for constraint in constraints]), reverse=True)
 
-	# ...and finally group them all back together again into values_sorted
+	# ...and finally group them all back together again into values_sorted. This list now represents a combination of
+	# the minimum remaining values heuristic with most constrained / degree heuristic as a tiebreaker.
 	for count in sorted(values_count_grouped.keys()):
 		values_sorted.extend(values_count_grouped[count])
 	del values_count_grouped
@@ -146,6 +148,8 @@ def csp(universe, next_moves=None, depth=0):
 
 	possible_universes = []
 	for variable in values_sorted:
+		# This "sorted" bit is the core of the least-constraining values engine; it prioritizes values for variables
+		# where the number of future possibilities is greatest (i.e. the value is least constraining).
 		possible_universes.extend(sorted(possible_universes_grouped[variable], key=lambda move: len(move[1]), reverse=True))
 	del possible_universes_grouped  # Reduce memory usage a bit
 
